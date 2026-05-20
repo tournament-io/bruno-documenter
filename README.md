@@ -1,160 +1,146 @@
-![Insomnia Documenter](assets/logo.png)
+# Bruno Documenter
 
-Like [Postman Documenter](https://www.getpostman.com/api-documentation-generator) but for [Insomnia](https://insomnia.rest)! With this tool you can generate beautiful API documentation pages using your Insomnia export file.
+Generate beautiful static API documentation pages from a [Bruno](https://www.usebruno.com/) OpenCollection YAML file.
 
-**Demo: https://insodoc.github.io/insomnia-documenter/**<br>
-**Tutorial and demo video: https://www.youtube.com/watch?v=pq2u3FqVVy8**
+Fork of [insomnia-documenter](https://github.com/jozsefsallai/insomnia-documenter) (Svelte + Rollup). The Insomnia v4 JSON pipeline was replaced with a Bruno OpenCollection 1.0 YAML parser. The design was customized to match the [Kickertool](https://kickertool.com) / tournament.app look — Roboto, Roboto Condensed, and Roboto Mono served locally (no Google Fonts, no CDNs — GDPR-safe).
+
+**Live example:** https://docs.api.tournament.io/
 
 ## Table of Contents
 
-- [Table of Contents](#table-of-contents)
 - [Requirements](#requirements)
 - [Getting Started](#getting-started)
-  - [Using `npx`](#using-npx)
-  - [By installing the package globally](#by-installing-the-package-globally)
   - [Options](#options)
-  - [Using a GitHub release](#using-a-github-release)
+- [How it Works](#how-it-works)
+- [Authoring the Bruno YAML](#authoring-the-bruno-yaml)
 - [Updating the API](#updating-the-api)
 - [Custom Root Paths](#custom-root-paths)
 - [Running the Page Locally](#running-the-page-locally)
-- [Insomnia Plugin](#insomnia-plugin)
-- [Changelog](#changelog)
-- [Contribution](#contribution)
+- [Development](#development)
 - [License](#license)
-- [Insomnia Documenter for enterprise](#insomnia-documenter-for-enterprise)
 
 ## Requirements
-  * Node.js (8.x or higher is recommended)
-  * An exported Insomnia workspace JSON (v4)
+
+* Node.js 16+
+* A Bruno OpenCollection YAML file (typically `bruno.yml`)
 
 ## Getting Started
 
-Insomnia Documenter offers a CLI tool to make it super easy to set up a documentation page. You can use it in two ways.
-
-### Using `npx`
-
 ```sh
-npx insomnia-documenter --config /path/to/insomnia/config.json
+node bin/generate.js \
+  --config /path/to/bruno.yml \
+  --logo /path/to/logo.png \
+  --favicon /path/to/favicon.ico \
+  --output /path/to/output/dir
 ```
 
-### By installing the package globally
-
-```sh
-npm i -g insomnia-documenter
-insomnia-documenter --config /path/to/insomnia/config.json
-```
+The output directory will contain `index.html`, `bundle.js`, `bundle.css`, the `static/` font assets, `bruno.yml`, `logo.png`, and `favicon.ico` — a self-contained static site ready to deploy (Cloudflare Pages, GitHub Pages, S3, etc.).
 
 ### Options
 
 ```
 Options:
-  -c, --config <location>  Location of the exported Insomnia JSON config.
-  -l, --logo <location>    Project logo location (48x48px PNG).
+  -c, --config <location>     Location of the Bruno OpenCollection YAML (bruno.yml).
+  -l, --logo <location>       Project logo location (48x48px PNG).
   -f, --favicon <location>    Project favicon location (ICO).
-  -o, --output <location>  Where to save the file (defaults to current working directory).
-  -h, --help               output usage information
+  -o, --output <location>     Where to save the files (defaults to current working directory).
+  -d, --data-root <docs-root> Docs root for the API documentation (see "Custom Root Paths").
+  -h, --help                  Output usage information.
 ```
 
-### Using a GitHub release
+Both relative and absolute paths are accepted for every flag.
 
-Alternatively, you can start using Insomnia Documenter by downloading a release archive from [GitHub](https://github.com/jozsefsallai/insomnia-documenter/releases) and adding your `insomnia.json` export file to the root directory of your site.
+## How it Works
+
+`src/lib/bruno/parseBruno.js` reads the Bruno OpenCollection YAML in the browser (via `js-yaml`) and translates it to the internal model used by the renderer:
+
+| Internal field | Bruno source |
+|---|---|
+| `workspace.name` | `info.name` |
+| `workspace.description` | top-level `docs.content` (rendered under the H1 as the API introduction) |
+| `environments[]` | `config.environments[]` |
+| `groups[]` (recursive folders) | items where `info.type === 'folder'`; folder docs from `docs.content` |
+| `requests[]` | items where `info.type === 'http'` |
+| `headers[]`, `params[]` (query + path), `body` | `http.headers`, `http.params`, `http.body` |
+| `description` + `exampleResponses[]` | `docs` block — example responses extracted from ` ```response:STATUS ` fenced blocks |
+| Sort order | `info.seq` (ascending; missing → end) |
+
+`{{var}}` interpolation in URLs, headers, params, and bodies uses the selected environment, identical to Bruno's runtime behavior.
+
+## Authoring the Bruno YAML
+
+* Endpoint docs live in the `docs:` block (string or `{content, type}`). Markdown is supported, including `<aside class="notice|warning|success">` callouts.
+* Example responses are fenced code blocks tagged with status:
+
+  ````markdown
+  ```response:200
+  { "id": "..." }
+  ```
+
+  ```response:403
+  { "error": "Forbidden" }
+  ```
+  ````
+
+  They are color-coded by status class (`1xx`, `2xx`, `3xx`, `4xx`, `5xx`).
+* Top-level `docs.content` becomes the API introduction shown under the H1.
+* Folder `docs.content` is rendered above the folder's endpoint list.
+* `info.seq` controls ordering of folders and endpoints.
 
 ## Updating the API
 
-Updating the API is super simple! Since Insomnia Documenter is a plug-and-play web app, you can just replace your `insomnia.json` with your new exported JSON file. Just make sure it's called `insomnia.json`.
-
-The same actually applies to the logo (`logo.png`) e favicon (`favicon.ico`) as well .
+Re-run `bin/generate.js` after editing the YAML. The output is fully static — copy or rsync it to your host.
 
 ## Custom Root Paths
 
-Maybe you want to document multiple APIs on the same domain? Perhaps you want to host your documentation page on GitHub pages? In this (any many other cases), you will need to specify what the root path is. To do this, you have to open `index.html` and replace the following line:
+To host the docs under a subpath, pass `-d /your/subpath` to the CLI, or hand-edit the generated `index.html`:
 
 ```html
-<div id="app"></div>
+<div id="app" data-root="/your/subpath"></div>
 ```
 
-with something like this:
-
-```html
-<div id="app" data-root="/path/to/docs"></div>
-```
-
-In this case, the app will pick up the `insomnia.json` file from the `/path/to/docs` directory. This gives you more flexibility over how you want to maintain your documentation page (for example, you can store the export file somewhere other than the root directory of the webpage). You should NOT put a trailing slash in the `data-root` property.
-
-Please note that setting this attribute will not affect the favicon and the logo of the page. They will still be loaded from the same directory where `index.html` is.
+No trailing slash. The app will fetch `bruno.yml` from that path. Logo and favicon are still loaded relative to `index.html`.
 
 ## Running the Page Locally
 
-Opening the `index.html` file will fail to load in 99.9% of cases because that's just how fetch works. To preview the page locally, you might want to use a tool such as [zeit/serve](https://github.com/zeit/serve):
+`file://` will not work — `fetch()` needs HTTP. Use any static server:
 
 ```sh
-npx serve
+python3 -m http.server -d <output-dir> 8000
+# or
+npx sirv <output-dir> --single
 ```
 
-The page will be available at http://localhost:5000.
-
-## Insomnia Plugin
-
-[devhammed](https://github.com/devhammed) has made an awesome Insomnia Plugin that allows you to generate a documentation page directly from Insomnia's interface. **[Get The Plugin](https://insomnia.rest/plugins/insomnia-plugin-documenter)** ([npm](https://www.npmjs.com/package/insomnia-plugin-documenter) - [github](https://github.com/devhammed/insomnia-plugin-documenter))
-
-## Changelog
-
-Please see the [Changelog document](https://github.com/jozsefsallai/insomnia-documenter/blob/master/CHANGELOG.md).
-
-## Contribution
-
-The CLI tool is a commander applet, while the frontend itself is a Svelte app. This project is still in beta, which means it has bugs and can be improved here and there. Contribution is most welcome :)
-
-**Clone the repository:**
+## Development
 
 ```sh
-git clone git@github.com:jozsefsallai/insomnia-documenter.git
-cd insomnia-documenter
-```
-
-**Install the dependencies:**
-
-```sh
+git clone <this-repo>
+cd bruno-documenter
 npm install
 ```
 
-**Copy the demo Insomnia export file:**
+Bring in a demo YAML (the bundled one points at `public/bruno.yml`):
 
 ```sh
-cp docs/insomnia.json public/insomnia.json
+cp docs/bruno.yml public/bruno.yml
 ```
 
-**Run a development build with hot reload:**
-
-```sh
-npm run dev
-```
-
-**Create a production build:**
+Production build:
 
 ```sh
 npm run build
 ```
 
-**Linting:**
+Watch + dev server:
 
 ```sh
-npm run lint
+npm run dev
 ```
 
-**Testing:**
-```sh
-npm run test
-```
+The frontend is Svelte 3; bundling via Rollup; styles via Dart Sass.
 
 ## License
 
-MIT.
+MIT. Inherits from the upstream insomnia-documenter project.
 
-*Note: this project is not affiliated with Kong and/or Insomnia.*
-
-## Insomnia Documenter for enterprise
-
-Available as part of the Tidelift Subscription
-
-The maintainers of Insomnia Documenter and thousands of other packages are working with Tidelift to deliver commercial support and maintenance for the open source dependencies you use to build your applications. Save time, reduce risk, and improve code health, while paying the maintainers of the exact dependencies you use. [Learn more.](https://tidelift.com/subscription/pkg/npm-insomnia-documenter?utm_source=npm-insomnia-documenter&utm_medium=referral&utm_campaign=enterprise&utm_term=repo)
+*Not affiliated with Bruno, Kong, or Insomnia.*

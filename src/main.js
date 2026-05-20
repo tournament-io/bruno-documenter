@@ -1,35 +1,33 @@
+import yaml from 'js-yaml';
 import App from './App.svelte';
 import ErrorPage from './ErrorPage.svelte';
-import CuteConfig from './lib/cuteConfig';
+import parseBruno from './lib/bruno/parseBruno';
 
 async function app() {
   const root = document.getElementById('app');
   const rootPath = root.getAttribute('data-root') || '';
 
   const url = process.env.NODE_ENV === 'demo'
-    ? '/insomnia-documenter/insomnia.json'
-    : `${rootPath}/insomnia.json`;
+    ? '/bruno-documenter/bruno.yml'
+    : `${rootPath}/bruno.yml`;
 
-  window.INSOMNIA_URL = url;
+  window.BRUNO_URL = url;
 
   try {
-    // eslint-disable-next-line no-undef
-    const json = await fetch(url, {
+    const text = await fetch(url, {
       method: 'GET',
       credentials: 'same-origin',
       headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json'
+        Accept: 'application/x-yaml, text/yaml, text/plain'
       }
-    }).then(res => res.json());
+    }).then(res => res.text());
 
-    const insomniaConfig = new CuteConfig(json).generate();
+    const doc = yaml.load(text);
+    const config = parseBruno(doc);
 
     return new App({
       target: root,
-      props: {
-        config: insomniaConfig
-      }
+      props: { config }
     });
   } catch (err) {
     console.error(err);

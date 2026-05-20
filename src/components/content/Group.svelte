@@ -28,6 +28,7 @@
 
 <div class="row">
   <div class="left">
+    <div class="anchor" id={group._id}>&nbsp;</div>
     <h2>{groupData.name}</h2>
 
     {#if description}
@@ -38,3 +39,13 @@
   </div>
   <div class="right" />
 </div>
+
+<style>
+  .anchor {
+    display: block;
+    position: relative;
+    top: -60px;
+    visibility: hidden;
+    height: 0;
+  }
+</style>

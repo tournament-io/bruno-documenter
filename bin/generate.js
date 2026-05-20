@@ -7,7 +7,7 @@ const fs = require('fs');
 const mkdirp = require('mkdirp');
 
 program
-  .option('-c, --config <location>', 'Location of the exported Insomnia JSON config.')
+  .option('-c, --config <location>', 'Location of the Bruno OpenCollection YAML (bruno.yml).')
   .option('-l, --logo <location>', 'Project logo location (48x48px PNG).')
   .option('-f, --favicon <location>', 'Project favicon location (ICO).')
   .option('-o, --output <location>', 'Where to save the file (defaults to current working directory).')
@@ -18,15 +18,15 @@ program
 const { config, logo, favicon, output, dataRoot } = program;
 
 if (!config) {
-  console.log('You must provide an exported Insomnia config (Preferences -> Data -> Export Data -> Current Workspace).');
+  console.log('You must provide a Bruno OpenCollection YAML file (e.g. bruno.yml).');
   process.exit(1);
 }
 
 const PACKAGE_DIST_PATH = path.resolve(__dirname, '..', 'public');
-const outputPath = output ? path.join(process.cwd(), output) : process.cwd();
-const logoPath = logo && path.join(process.cwd(), logo);
-const faviconPath = favicon && path.join(process.cwd(), favicon);
-const configPath = path.join(process.cwd(), config);
+const outputPath = output ? path.resolve(process.cwd(), output) : process.cwd();
+const logoPath = logo && path.resolve(process.cwd(), logo);
+const faviconPath = favicon && path.resolve(process.cwd(), favicon);
+const configPath = path.resolve(process.cwd(), config);
 
 console.log('Getting files ready...');
 
@@ -42,9 +42,9 @@ mkdirp(outputPath, err => {
     cover: true
   });
 
-  console.log('Adding Insomnia JSON...');
+  console.log('Adding Bruno YAML...');
 
-  fs.copyFileSync(configPath, path.join(outputPath, 'insomnia.json'));
+  fs.copyFileSync(configPath, path.join(outputPath, 'bruno.yml'));
 
   if (logoPath) {
     console.log('Adding custom logo...');

@@ -7,7 +7,7 @@
   <p>
     It looks like it's not possible to retrieve the contents of the API documentation
     at the moment. If you're the owner of this site, make sure that your
-    <a href={window.INSOMNIA_URL} target="_blank">Insomnia JSON file</a> is accessible.
+    <a href={window.BRUNO_URL} target="_blank">Bruno YAML file</a> is accessible.
   </p>
   <p>
     The developer console of your browser might have more things to say about this error.

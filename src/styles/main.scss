@@ -133,7 +133,9 @@ button {
 
   strong {
     font-size: 11px;
-    margin-right: 5px;
+    margin-right: 0px;
+    min-width: 30px;
+    text-align: left;
 
     &.get {
       color: $get-request;

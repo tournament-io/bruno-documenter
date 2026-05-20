@@ -11,11 +11,6 @@
   $: requests = applyEnvForObject(config.requests, config.environments[envId]);
   $: groups = applyEnvForObject(config.groups, config.environments[envId]);
 
-  const jsonUrl = window.location.origin + window.INSOMNIA_URL;
-  const runInInsomniaLink = `https://insomnia.rest/run/?label=${encodeURIComponent(
-    config.workspace.name
-  )}&uri=${encodeURIComponent(jsonUrl)}`;
-
   let menuVisible = false;
   let exampleVisible =
     (localStorage.getItem('show-examples') || 'true') === 'true';
@@ -34,7 +29,7 @@
   <title>{config.workspace.name}</title>
 </svelte:head>
 
-<header style="border-top: 6px solid {color !== null ? color : '#6a57d5'};">
+<header>
   <div class="header-left">
     <span class="hamburger-toggler" on:click={toggleHamburger}>
       <i class="fa fa-bars" aria-hidden="true" />
@@ -47,11 +42,6 @@
     <h1 class="title">{config.workspace.name}</h1>
   </div>
   <div class="header-right">
-    <div class="run">
-      <a href={runInInsomniaLink} target="_blank">
-        <img src="https://insomnia.rest/images/run.svg" alt="Run in Insomnia" />
-      </a>
-    </div>
     <div class="environment">
       <label for="env" style="display:inline-block;">Environment:</label>
       <select id="env" bind:value={envId}>

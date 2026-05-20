@@ -3,6 +3,6 @@
 </script>
 
 <a href="#{request._id}" class="sidebar-list-link name">
-  <strong class={request.method.toLowerCase()}>{request.method}</strong>
+  <strong class={request.method.toLowerCase()}>{request.method === 'DELETE' ? 'DEL' : request.method}</strong>
   <span>{request.name}</span>
 </a>
